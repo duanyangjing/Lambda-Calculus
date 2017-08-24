@@ -1,0 +1,20 @@
+open Syntax
+
+(* terminal symbols *)
+%token LAMBDA
+%token DOT
+%token VAR
+%token LPAREN
+%token RPAREN
+%token EOL
+
+(* entry point of the parser *)
+%start main
+(* main is just one lambda term *)
+main:
+  term EOL     { $1 }
+
+term:
+| VAR { Var($1) }
+| LAMBDA VAR DOT term { Abs($2,$4) }
+| term term { App($1,$2) }
