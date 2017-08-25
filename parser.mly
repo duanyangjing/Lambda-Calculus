@@ -9,25 +9,24 @@
 
 /* terminal symbols */
 %token LAMBDA
-%token DOT
 %token <string> VAR
 %token LPAREN
 %token RPAREN
-%token EOL
+%token SEMICOLON
 
 /* entry point of the parser */
 %start main
-%type <context -> (term * context)> main
+%type <Syntax.term> main
 
      
 %%
-/* main is just one lambda term */
+/* main is just one lambda term ended with semicolon */
 main:
-  term EOL     { $1 }
+     term SEMICOLON { $1 }
 
 term:
      app       { $1 }
-   | LAMBDA VAR DOT term  { Abs($2,$4) }
+   | VAR LAMBDA term  { Abs($1,$3) }
 
 app:
      atom  { $1 }

@@ -9,7 +9,7 @@ type term =
 (* De bruijn representation of term. Variables are encoded as de bruijn index, which is the nesting depth of the bounded lambda *)
 type nameless_term =
   | Variable of int
-  | Lambda of nameless_term
+  | Lambda of string * nameless_term
   | Apply of nameless_term * nameless_term
 
 (* Naming context of unbound variables. de bruijn index of var = str index + nesting depth *)
@@ -32,17 +32,16 @@ let removenames ot context =
     | Abs(str, absbody) ->
        let binderlist = List.map (fun (s,d) -> (s,d+1)) binderlist in
        let binderlist' = (str,0)::binderlist in
-       Lambda(helper absbody context binderlist' (depth+1))
+       Lambda(str, helper absbody context binderlist' (depth+1))
     | App(t1, t2) ->
        let t1' = helper t1 context binderlist depth
        and t2' = helper t2 context binderlist depth in
        Apply(t1', t2')
   in helper ot context [] 0
   
-let restorenames nt context =
-  let rec helper nt context depth =
-    match nt with
-    | Variable(i) ->
-    | Lambda(i) ->
-    | Apply(t1, t2) ->
-  in helper nt context 0
+let rec print_ot ot =
+  match ot with
+    Var(str) -> print_string str
+  | Abs(str,term) -> print_string (str ^ "\\ "); print_ot term
+  | App(t1,t2) -> print_ot t1; print_ot t2
+  
