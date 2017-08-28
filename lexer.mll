@@ -8,5 +8,6 @@ rule token = parse
   | "("        {LPAREN}
   | ")"        {RPAREN}
   | "\\"       {LAMBDA}
-  | ['a'-'z']  {VAR (lexeme lexbuf)}
+  | ['a'-'z']  {VAR(Lexing.lexeme lexbuf)}
+  | ";"        {SEMICOLON}
   | eof     {raise Eof}
