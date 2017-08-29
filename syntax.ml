@@ -64,7 +64,17 @@ let rec print_ot ot =
      print_ot t2;
      print_string ")"
   
-
+let rec print_nt nt =
+  match nt with
+    Variable(k) -> print_int k
+  | Lambda(s,t) -> print_string ("\\"); print_nt t
+  | Apply(t1,t2) -> 
+     print_string "(";
+     print_nt t1;
+     print_string " ";
+     print_nt t2;
+     print_string ")"
+       
 (* Shifting -- renumber indices of free variables in substitution*)
 (* d is the offset to shift, c is the cut off to distinguish bound vars within nt*)
 let rec termshift t d c =
@@ -77,7 +87,7 @@ let rec termshift t d c =
 (* [x -> s]t *)
 let rec substitute x s t = match x with Variable(x') ->
   match t with
-    Variable(k) -> if k = x' then t else Variable k
+    Variable(k) -> if k = x' then s else Variable k
   | Lambda(str,t) -> Lambda(str, substitute (Variable(x'+1)) (termshift s 1 0) t)
   | Apply(t1,t2) -> Apply(substitute x s t1, substitute x s t2)
 
@@ -85,12 +95,12 @@ let rec substitute x s t = match x with Variable(x') ->
 let rec eval t =
   match t with
     Variable(k) -> t
-  | Lambda(s,t) -> Lambda(s,eval t)
-  | Apply(Lambda(str,t),s) ->
+  | Lambda(str,tm) -> Lambda(str,eval tm)
+  | Apply(Lambda(str,tm),s) ->
      let s' = termshift s 1 0 in
-     let ret = substitute (Variable 0) s' t in
+     let ret = substitute (Variable 0) s' tm in
      termshift ret (-1) 0
   | Apply(t1,t2) ->
      let t1' = eval t1
      and t2' = eval t2 in
-     eval (Apply(t1', t2')) 
+     eval (Apply(t1',t2'))
