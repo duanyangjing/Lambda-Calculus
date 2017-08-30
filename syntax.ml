@@ -16,39 +16,60 @@ type nameless_term =
 let context = [("x", 0); ("y", 1); ("z", 2); ("a", 3); ("b", 4)]
 
 (* given an ordinary term, a naming context and current lambda depth, return the index for a free variable *)
-let freevar_index oterm context depth = match oterm with
-  | Var(str) -> (List.assoc str context) + depth
-  | Abs(str,_) -> (List.assoc str context) + depth
+let freevar2index ot context depth = match ot with
+    Var(str) -> (List.assoc str context) + depth
 
+let index2freevar nt context depth = match nt with
+    Variable(k) -> let (str,_) = List.nth context (k-depth) in Var str
+  
 (* Ordinary term to nameless term *)
 (* 
 binderlist is a list of (boundvar string, depth), for example:
 λx.x — [(x,0)]
-λx.λy.x — [(x,1);(y,0)]
+λx.λy.x — [(y,0);(x,1)]
 the associated depth is the de bruijn index for bound variables.
 
 Under this setting λx.λx.x yields binderlist [(x,0);(x,1)]. Because List.mem_assoc finds the
 first matching key, var x still maps to index 0, which is correct. Strictly speaking alpha 
 conversion might be needed in this case.
-*)
+
+TODO: might change binderlist to a plane list of strings
+*)   
 let removenames ot context =
   let rec helper ot context binderlist depth =
     match ot with
     | Var(str) ->
        if List.mem_assoc str binderlist
        then Variable(List.assoc str binderlist)
-       else Variable(freevar_index ot context depth)
-    | Abs(str, absbody) ->
+       else Variable(freevar2index ot context depth)
+    | Abs(str,absbody) ->
        let binderlist = List.map (fun (s,d) -> (s,d+1)) binderlist in
        let binderlist' = (str,0)::binderlist in
        Lambda(str, helper absbody context binderlist' (depth+1))
-    | App(t1, t2) ->
+    | App(t1,t2) ->
        let t1' = helper t1 context binderlist depth
        and t2' = helper t2 context binderlist depth in
-       Apply(t1', t2')
+       Apply(t1',t2')
   in helper ot context [] 0 
 
-(* Print out the ordinary term given an ordinary term*)
+let restorenames nt context =
+  let rec helper nt context binderlist depth =
+    match nt with
+    | Variable(k) ->
+       if k >= List.length binderlist then index2freevar nt context depth
+       else
+         let (str,_) = List.nth binderlist k in Var str
+    | Lambda(str,t) ->
+       let binderlist = List.map (fun (s,d) -> (s,d+1)) binderlist in
+       let binderlist' = (str,0)::binderlist in
+       Abs(str, helper t context binderlist' (depth+1))
+    | Apply(t1,t2) ->
+       let t1' = helper t1 context binderlist depth
+       and t2' = helper t2 context binderlist depth in
+       App(t1',t2')
+  in helper nt context [] 0
+        
+(* Print out the given ordinary term *)
 let rec print_ot ot =
   match ot with
     Var(str) -> print_string str
@@ -63,11 +84,15 @@ let rec print_ot ot =
      print_string " ";
      print_ot t2;
      print_string ")"
-  
+
+(* Print out the given nameless term *)
 let rec print_nt nt =
   match nt with
     Variable(k) -> print_int k
-  | Lambda(s,t) -> print_string ("\\"); print_nt t
+  | Lambda(s,t) ->
+     print_string "(";
+     print_string ("\\ "); print_nt t;
+     print_string ")"
   | Apply(t1,t2) -> 
      print_string "(";
      print_nt t1;
@@ -103,4 +128,4 @@ let rec eval t =
   | Apply(t1,t2) ->
      let t1' = eval t1
      and t2' = eval t2 in
-     eval (Apply(t1',t2'))
+     Apply(t1',t2')

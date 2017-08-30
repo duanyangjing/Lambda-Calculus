@@ -13,5 +13,6 @@ val print_ot: term -> unit
 val context: (string * int) list
 
 val removenames: term -> (string * int) list -> nameless_term
+val restorenames: nameless_term -> (string * int) list -> term
 val print_nt: nameless_term -> unit
 val eval: nameless_term -> nameless_term
